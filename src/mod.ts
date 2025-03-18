@@ -31,51 +31,21 @@ import path from "node:path";
 import { jsonc } from "jsonc";
 
 class OldProfileLoader implements IPostDBLoadMod
-{    
-    private modConfig;
-    public preSptLoad(container: DependencyContainer): void 
+{
+    public postDBLoad(container: DependencyContainer): void 
     {
         const logger:ILogger = container.resolve<ILogger>("WinstonLogger");
         const staticRouterModService:StaticRouterModService = container.resolve<StaticRouterModService>("StaticRouterModService");
         const jsonUtil:JsonUtil = container.resolve<JsonUtil>("JsonUtil");
         
         const fileSystem = container.resolve<FileSystemSync>("FileSystemSync");
-        this.modConfig = jsonc.parse(fileSystem.read(path.resolve(__dirname, "../config/config.jsonc")));
+        const modConfig = jsonc.parse(fileSystem.read(path.resolve(__dirname, "../config/config.jsonc")));
         
-        if (!this.modConfig.Enable) 
+        if (!modConfig.Enable) 
         {
             return;    
         }
 
-        const databaseServer = container.resolve<DatabaseServer>("DatabaseServer");
-        const tables: IDatabaseTables = databaseServer.getTables();
-        const itemHelper: ItemHelper = container.resolve<ItemHelper>("ItemHelper");
-        const profileHelper: ProfileHelper = container.resolve<ProfileHelper>("ProfileHelper");
-
-
-        // Hook up to existing SPT static route
-        staticRouterModService.registerStaticRouter(
-            "StaticRoutePeekingSpt",
-            [
-                {
-                    url: "/launcher/profile/login",
-                    action: async (url, info, sessionId, output) =>
-                    {
-                        if (sessionId) {                            
-                            this.MainWorkFlow(container, sessionId)
-                        }
-                        return output;
-                    }
-                }
-            ],
-            "spt"
-        );
-        
-    }
-
-    private MainWorkFlow(container: DependencyContainer, sessionId:string): void 
-    {
-        const logger:ILogger = container.resolve<ILogger>("WinstonLogger");
         logger.info(`OldProfileLoader Start!`)        
 
         const databaseServer = container.resolve<DatabaseServer>("DatabaseServer");
@@ -105,7 +75,7 @@ class OldProfileLoader implements IPostDBLoadMod
             {                
                 if(itemHelper.isValidItem(item._tpl))
                 {
-                    if (this.modConfig.ResetDurability) 
+                    if (modConfig.ResetDurability) 
                     {
                         // delete Durability like Realism mod is not same as vanilla
                         if (item.upd?.MedKit) item.upd.MedKit = undefined;
@@ -130,7 +100,7 @@ class OldProfileLoader implements IPostDBLoadMod
             const configServer:ConfigServer = container.resolve<ConfigServer>("ConfigServer");
             const giftConfig:IGiftsConfig = configServer.getConfig<IGiftsConfig>(ConfigTypes.GIFTS);
 
-            const mailItemExpirationDays = this.modConfig.MailItemExpirationDays;
+            const mailItemExpirationDays = modConfig.MailItemExpirationDays;
             const sendDate = new Date();
             const maxStorageItemsDate = new Date();
             maxStorageItemsDate.setDate(maxStorageItemsDate.getDate() + mailItemExpirationDays);
@@ -163,13 +133,8 @@ class OldProfileLoader implements IPostDBLoadMod
             
             const giftId = `OldProfileLoader${key}`;
             giftConfig.gifts[giftId] = newGift;
-            
-            const giftService: GiftService = container.resolve<GiftService>("GiftService");
-            
-            giftService.sendGiftToPlayer(sessionId,giftId);
         }
     }
-
 }
 
 export const mod = new OldProfileLoader();
