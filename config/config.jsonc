@@ -1,0 +1,5 @@
+{
+    "Enable": false,
+    "MailItemExpirationDays": 30,
+    "ResetDurability": true
+}
