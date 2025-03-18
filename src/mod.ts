@@ -90,7 +90,7 @@ class OldProfileLoader implements IPostDBLoadMod
                 }
                 else
                 {
-                    logger.info(`${itemHelper.getItem(item._tpl)[1]?._name} is not valid`);
+                    // logger.info(`${itemHelper.getItem(item._tpl)[1]?._name} is not valid`);
                 }
             }
             logger.info(`validItemCount: ${validItems.length}`);
