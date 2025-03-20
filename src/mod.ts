@@ -30,6 +30,7 @@ import { IInventoryMoveRequestData } from "@spt/models/eft/inventory/IInventoryM
 
 import path from "node:path";
 import { jsonc } from "jsonc";
+import { IProfileChangeEvent, ProfileChangeEventType } from "@spt/models/spt/dialog/ISendMessageDetails";
 
 class OldProfileLoader implements IPostDBLoadMod
 {
@@ -107,8 +108,6 @@ class OldProfileLoader implements IPostDBLoadMod
             { 
                 //TODO if mail stash is full item disappear
                 //it is client bug restart will be refresh appear
-
-
 
 
 
@@ -227,7 +226,70 @@ class OldProfileLoader implements IPostDBLoadMod
             const filePath = `user/mods/November75-OldProfileLoader/newProfileWithLeftoverItems/${key}.json`;
             const jsonProfile = jsonUtil.serialize(profile,true);
             fileSystem.write(filePath, jsonProfile);
+
+
+
+            // load skills
+            const skillGiftProfileChangeEvent: IProfileChangeEvent[] = [];
+
+            // level
+            skillGiftProfileChangeEvent.push({
+                _id: hashUtil.generate(),
+                Type: ProfileChangeEventType.PROFILE_LEVEL,
+                value: profile.characters.pmc.Info.Experience,
+                entity: undefined
+            });  
+
+            for (const skill of profile.characters.pmc.Skills.Common)
+            {
+                skillGiftProfileChangeEvent.push({
+                    _id: hashUtil.generate(),
+                    Type: ProfileChangeEventType.SKILL_POINTS,
+                    value: skill.Progress,
+                    entity: skill.Id
+                });
+            }            
+            for (const skill of profile.characters.pmc.Skills.Mastering)
+            {
+                skillGiftProfileChangeEvent.push({
+                    _id: hashUtil.generate(),
+                    Type: ProfileChangeEventType.SKILL_POINTS,
+                    value: skill.Progress,
+                    entity: skill.Id
+                });
+            }
+
+
             
+            const skillMessageText = 
+                `Old Profile From Name: ${profile.info.username}(${key})\n`+
+                `Sending skill points\n`;
+
+            const skillGift:IGift = {
+                items: [                {
+                    "_id": "668014ea2b680c65290bbd0a",
+                    "_tpl": "5449016a4bdc2d6f028b456f",
+                    "upd": {
+                        "StackObjectsCount": 500000
+                    },
+                    "parentId": "668014ea2b680c65290bbd08",
+                    "slotId": "main"
+                }],
+                sender: GiftSenderType.SYSTEM, // right now skill must have to SYSTEM
+                messageText: skillMessageText,
+                collectionTimeHours: 12,
+                associatedEvent: SeasonalEventType.NONE,
+                profileChangeEvents: skillGiftProfileChangeEvent,
+                maxToSendPlayer: 1,
+                senderDetails: { _id: profile.info.id, aid: profile.info.aid }  // 3.11 this use only sender is GiftSenderType.USER
+            };
+
+            const giftSKillBaseCode = "Skill"
+            //giftConfig.gifts[giftBaseCode+giftSKillBaseCode+key] = skillGift;
+
+            // skill gift is only fix level not add
+            // have to find other way
+
         }
     }
 }
