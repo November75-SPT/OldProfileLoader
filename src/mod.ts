@@ -69,7 +69,8 @@ class OldProfileLoader implements IPostDBLoadMod
         }
         for (let [key, profile] of profiles) 
         {
-            logger.info(`total: ${profile.characters.pmc.Inventory.items.length}`);
+            logger.info(`Processing profile ${key}`);
+            logger.info(`total items: ${profile.characters.pmc.Inventory.items.length}`);
             const items = profile.characters.pmc.Inventory.items;
             
             const mainEquipmentStash = profile.characters.pmc.Inventory.equipment;
@@ -144,7 +145,7 @@ class OldProfileLoader implements IPostDBLoadMod
                     // 
                     if (childrenItems.length > 1 && childrenItems[0].parentId) 
                     {          
-                        logger.info(`${childrenItems[0]._id} is not valid item pop out ${childrenItems.length-1} items`);
+                        logger.info(`id(${childrenItems[0]._id})tpl(${childrenItems[0]._tpl}) is not valid item pop out inside items`);
                         
                         for (let index = 1; index < childrenItems.length; index++)
                         {
@@ -154,7 +155,7 @@ class OldProfileLoader implements IPostDBLoadMod
                             // Prevents them from going deeper.
                             if (childrenItem.parentId != childrenItems[0]._id ) continue;
 
-                            logger.info(`${childrenItem._id} pop out to ${childrenItems[0].parentId}`);
+                            logger.info(`id(${childrenItem._id})tpl(${childrenItem._tpl}) pop out to ${childrenItems[0].parentId}`);
                             childrenItem.parentId = childrenItems[0].parentId;
 
                             // if item is have to relocate
@@ -169,7 +170,7 @@ class OldProfileLoader implements IPostDBLoadMod
                     }
                 }
             }
-            logger.info(`validItemCount: ${validItems.length}`);
+            logger.info(`Total valid Item Count: ${validItems.length}`);
 
 
             // add gift            
