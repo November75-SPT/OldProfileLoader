@@ -74,9 +74,6 @@ class OldProfileLoader implements IPostDBLoadMod
             
             const mainEquipmentStash = profile.characters.pmc.Inventory.equipment;
             const validItems: IItem[] = [];
-            // temp fix for 1.0.0 users
-            const missingItems: IItem[] = [];
-            const missingValidItems: IItem[] = [];
 
             // strip off Player Equipment Slots 
             // from LocationLifecycleService line 1031
@@ -103,98 +100,6 @@ class OldProfileLoader implements IPostDBLoadMod
                 "SpecialSlot2",
                 "SpecialSlot3"
             ];
-
-
-            // temporary fix for already use users
-            // find inventorySlots item and inside items            
-            // add main stash
-            // inventorySlotsValidItems.push(items.find(x => x._id == mainEquipmentStash));
-            for (const item of items) 
-            {                 
-                if (inventorySlots.includes(item.slotId)) 
-                {
-                    item.slotId = "hideout";
-                    missingItems.push(item);
-
-                    // find inside items
-                    const childrenItems = itemHelper.findAndReturnChildrenAsItems(items,item._id);
-                    for (let index = 1; index < childrenItems.length; index++) 
-                    {
-                        const childrenItem = childrenItems[index];                        
-                        
-                        if(!missingItems.includes(childrenItem)) missingItems.push(childrenItem);
-                    }
-                    continue;
-                }
-                
-
-                // find no valid item and inside items and not stash
-                if(!itemHelper.isValidItem(item._tpl) && item.parentId)
-                {
-                    const childrenItems = itemHelper.findAndReturnChildrenAsItems(items,item._id);
-                    for (let index = 0; index < childrenItems.length; index++) 
-                    {
-                        const childrenItem = childrenItems[index];                        
-                        
-                        if(!missingItems.includes(childrenItem)) missingItems.push(childrenItem);
-                    }
-                }
-            }
-
-            // temporary fix check valid item
-            for (const item of missingItems) 
-            {            
-                if (itemHelper.isValidItem(item._tpl))
-                {
-                    if (modConfig.ResetDurability) 
-                    {
-                        // delete Durability like Realism mod is not same as vanilla
-                        if (item.upd?.MedKit) item.upd.MedKit = undefined;
-                        if (item.upd?.Repairable) item.upd.Repairable = undefined;
-                        if (item.upd?.FoodDrink) item.upd.FoodDrink = undefined;
-                        if (item.upd?.Key) item.upd.Key = undefined;
-                        if (item.upd?.Resource) item.upd.Resource = undefined;
-                        if (item.upd?.RepairKit) item.upd.RepairKit = undefined;
-                    }
-
-                    missingValidItems.push(item);
-                }
-                else
-                {
-                    const childrenItems = itemHelper.findAndReturnChildrenAsItems(missingItems,item._id);
-
-                    // 
-                    if (childrenItems.length > 1 && childrenItems[0].parentId) 
-                    {
-                        logger.info(`${childrenItems[0]._id} is not valid item pop out ${childrenItems.length-1} items`);
-                        
-                        for (let index = 1; index < childrenItems.length; index++)
-                        {
-                            const childrenItem = childrenItems[index];
-    
-                            // Filters out items that are only in the current item.
-                            // Prevents them from going deeper.
-                            if (childrenItem.parentId != childrenItems[0]._id ) continue;
-    
-                            logger.info(`${childrenItem._id} pop out to ${childrenItems[0].parentId}`);
-                            childrenItem.parentId = childrenItems[0].parentId;
-    
-                            // if item is have to relocate
-                            // if item is inside container then item location will be conflict could erase item
-                            // // try use  inventoryHelper.getContainerMap    containerHelper.findSlotForItem but too much work
-                            // pop out main stash
-                            // changing to hideout will be whatever it is pop out to  main stash
-                            if (childrenItem.slotId) childrenItem.slotId = "hideout";
-                            // if pop out to main stash location have to be delete otherwise it is disappear
-                            if (childrenItem.location) childrenItem.location = undefined; 
-                        }
-                    }
-                }
-
-            }
-            logger.info(`missingValidItems: ${missingValidItems.length}`);
-
-
 
 
             for (const item of items) 
@@ -301,39 +206,9 @@ class OldProfileLoader implements IPostDBLoadMod
                 maxToSendPlayer: 1,
             }
 
-            // temp fix
-            const missingItemsGiftMessageText =
-                `Old Profile From Name: ${profile.info.username}(${key})\n` +
-                `forgeted Inventory Slots Items and not validItem inside items` +
-                `Send Items total number ${missingValidItems.length}\n` +
-                `Send time is ${sendDate.toLocaleString()}\n` +
-                `Max Storage day is ${mailItemExpirationDays}\n` +
-                `Items hold until ${maxStorageItemsDate.toLocaleString()}`;
-            const missingItemItemsGift:IGift = {
-                items: missingValidItems,
-                sender: GiftSenderType.USER,
-                senderDetails: {
-                    _id: hashUtil.generate(),
-                    aid: profile.info.aid+1,
-                    Info:{
-                        Nickname: profile.characters.pmc.Info.Nickname,
-                        Side: profile.characters.pmc.Info.Side,
-                        Level: profile.characters.pmc.Info.Level,
-                        MemberCategory: profile.characters.pmc.Info.MemberCategory,
-                        SelectedMemberCategory: profile.characters.pmc.Info.SelectedMemberCategory,
-                    },
-                },
-                messageText: missingItemsGiftMessageText,
-                associatedEvent: SeasonalEventType.NONE,
-                collectionTimeHours: 24 * mailItemExpirationDays,
-                maxToSendPlayer: 1,
-            }
-
             
             const giftBaseCode = `OldProfileLoader`;
             giftConfig.gifts[giftBaseCode+key] = newGift;
-            //temp fix
-            giftConfig.gifts[giftBaseCode+`MissingItems`+key] = missingItemItemsGift;
 
 
             // create new profile with delete valid items
